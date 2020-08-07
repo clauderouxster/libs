@@ -7,7 +7,7 @@ The main git repository for *Tamgu* is: https://github.com/naver/tamgu.
 
 To compile these libraries you need to have the following libraries installed on your system:
 
-* fltk1.3
+* fltk1.3 (GUI toolkit library)
 * libao, libsnd and libmpg123
 
 These libraries are usually either installed or can be installed with *yum* or *apt-get*, according to your package installer and your Linux system.
