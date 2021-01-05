@@ -23,6 +23,11 @@
 #include "tamguimage.h"
 #include "instructions.h"
 
+// In the case of FLTK 1.4 on MacOS, we need to prevent FLTK menu to replace the current menu in Tamgu.app
+#ifdef FLTK14
+#include "Fl/Fl_Sys_Menu_Bar.H"
+#endif
+
 #ifdef WIN32
 void FlResetTimer();
 #endif
@@ -68,7 +73,7 @@ void TerminateMainWindow() {
 			delete mainwindow->window;
 		}
 		mainwindow = NULL;
-	}		
+	}
 }
 
 //-------------------------------------------------------------------
@@ -123,7 +128,7 @@ static void timeout_callback(void *data) {
 	FLCallback* wn = (FLCallback*)data;
     if (!wn->used || !globalTamgu->Checktracker(wn->window, wn->iwindow))
         return;
-    
+
 	Tamguwindow* kwnd = wn->window;
 	if (!Ready()) {
 		Fl::repeat_timeout(wn->timevalue, timeout_callback, data);
@@ -131,7 +136,7 @@ static void timeout_callback(void *data) {
 	}
 
     Cleartimedata();
-    
+
 	if (wn->function == aNULL) {
 		if (Stopall())
 			return;
@@ -191,7 +196,7 @@ bool Tamguwindow::InitialisationModule(TamguGlobal* global, string version) {
 	infomethods.clear();
 	exported.clear();
 	nothreads.clear();
-	
+
 	Tamguwindow::idtype = global->Getid("window");
 	Tamguwidget::idtype = global->Getid("widget");
 	Initstopall(false);
@@ -307,14 +312,14 @@ bool Tamguwindow::InitialisationModule(TamguGlobal* global, string version) {
 	return true;
 }
 
-void TamguCanvas::draw() {	
+void TamguCanvas::draw() {
 	if (function != NULL) {
 		fl_color(FL_BLACK); //we set FL_BLACK as the default color, it can be modified with drawcolor in the code...
 		TamguCallFunction call(function);
 		call.arguments.push_back(window);
 		call.arguments.push_back(object);
 		Tamgu* a = call.Eval(aNULL, aNULL, globalTamgu->GetThreadid());
-		a->Release();		
+		a->Release();
 		window->scroll->scrollbar.redraw();
 		window->scroll->hscrollbar.redraw();
 	}
@@ -367,12 +372,12 @@ void Tamguwindow::itemclose() {
 		if (ke != NULL)
 			((Tamguwidget*)ke)->itemclose();
 	}
-	
+
 	items.clear();
-	
+
 	if (onclose != NULL)
 		delete onclose;
-	
+
     if (timeout != NULL) {
 		timeout->Reset();
 #ifdef WIN32
@@ -383,10 +388,10 @@ void Tamguwindow::itemclose() {
 
         timeout = NULL;
     }
-	
+
 	if (scrollcanvas != NULL)
 		delete scrollcanvas;
-	
+
 	if (scroll != NULL)
 		delete scroll;
 
@@ -440,6 +445,10 @@ Tamgu* Tamguwindow::MethodCreate(Tamgu* contextualpattern, short idthread, Tamgu
 	end = true;
 	window->callback(close_callback, this);
 	window->end();
+#ifdef FLTK14
+    Fl_Sys_Menu_Bar::window_menu_style(Fl_Sys_Menu_Bar::no_window_menu);
+#endif
+
 	window->show();
 	return aTRUE;
 }
@@ -453,7 +462,7 @@ Tamgu* Tamguwindow::MethodRun(Tamgu* contextualpattern, short idthread, TamguCal
 		window->end();
 		window->show();
 	}
-	
+
 	if (mainwindow == NULL)
 		mainwindow = this;
 
@@ -480,6 +489,10 @@ Tamgu* Tamguwindow::MethodEnd(Tamgu* contextualpattern, short idthread, TamguCal
 	window->end();
 	if (scrollcanvas != NULL)
 		window->resizable(scrollcanvas);
+
+#ifdef FLTK14
+    Fl_Sys_Menu_Bar::window_menu_style(Fl_Sys_Menu_Bar::no_window_menu);
+#endif
 
 	window->show();
 	current_window.pop_back();
@@ -917,7 +930,7 @@ Tamgu* Tamguwindow::MethodScrollbar(Tamgu* contextualpattern, short idthread, Ta
 	scrollcanvas->function = function;
 	scrollcanvas->object = object;
 	function = NULL;
-	scroll->end();	
+	scroll->end();
 	return aTRUE;
 }
 
@@ -1054,8 +1067,8 @@ Tamgu* Tamguwindow::MethodPlot(Tamgu* contextualpattern, short idthread, TamguCa
 					maxY = max(y, maxY);
 				}
 			}
-		}		
-		
+		}
+
 		if (maxX == minX || maxY == minY) {
 			fv->Release();
 			return kvect;
@@ -1115,7 +1128,7 @@ Tamgu* Tamguwindow::MethodPlot(Tamgu* contextualpattern, short idthread, TamguCa
 			if (i)
 				fl_line((int)a, (int)b, (int)x, (int)y);
 			a = x;
-			b = y;			
+			b = y;
 		}
 		else {
 			if (thickness == 1)
@@ -1216,7 +1229,7 @@ Tamgu* Tamguwindow::MethodInput(Tamgu* contextualpattern, short idthread, TamguC
 Tamgu* Tamguwindow::MethodPost(Tamgu* contextualpattern, short idthread, TamguCall* callfunc) {
     if (window == NULL)
         return Returningerror("WND(303): No window available", idthread);
-    
+
     Tamgu* function = callfunc->arguments[0];
     if (!function->isFunction())
         return Returningerror("WND(109): Wrong element, the first parameter should be a function", idthread);
@@ -1229,12 +1242,12 @@ Tamgu* Tamguwindow::MethodPost(Tamgu* contextualpattern, short idthread, TamguCa
         a->Setreference();
         kfunc.arguments.push_back(a);
     }
-    
+
     kfunc.Eval(aNULL, aNULL, idthread);
-    
+
     for (i = 0; i < kfunc.arguments.last; i++)
         kfunc.arguments[i]->Resetreference();
-    
+
     return aTRUE;
 }
 
@@ -1318,6 +1331,7 @@ Tamgu* Tamguwindow::MethodGetFontSizes(Tamgu* contextualpattern, short idthread,
 Tamgu* Tamguwindow::MethodNbFonts(Tamgu* contextualpattern, short idthread, TamguCall* callfunc) {
 	return globalTamgu->Provideint(fontmax);
 }
+
 
 
 
